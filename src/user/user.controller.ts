@@ -1,21 +1,24 @@
-import { Controller, Get, Post } from '@nestjs/common';
+import { Controller, Get, Logger, Post } from '@nestjs/common';
 import { UserService } from './user.service';
 import { ConfigService } from '@nestjs/config';
 
 @Controller('user')
 export class UserController {
+  private logger = new Logger('用户模块');
   constructor(
     private userService: UserService,
     private configService: ConfigService,
-  ) {}
+  ) {
+    this.logger.log('UserController initialized');
+  }
 
   @Get()
   getUsers(): any {
-    return this.userService.getUsers();
+    this.logger.log('请求getUser成功');
   }
 
   @Post()
   addUser(): any {
-    return this.userService.addUser();
+    this.logger.log('addUser请求成功');
   }
 }

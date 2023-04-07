@@ -1,14 +1,18 @@
-import { Module } from '@nestjs/common';
+import { Global, Logger, Module } from '@nestjs/common';
 import { UserModule } from './user/user.module';
 import { ConfigModule } from '@nestjs/config';
 import * as dotenv from 'dotenv';
 import * as Joi from 'joi';
 import { TypeOrmModule } from '@nestjs/typeorm';
-import { LoggerModule } from 'nestjs-pino';
-import { join } from 'path';
-import { conncectionParams } from '../ormconfig';
+
+import { LogsModule } from './logs/logs.module';
+import { RolesModule } from './roles/roles.module';
+
+import { connectionParams } from '../ormconfig';
 
 const envFilePath = `.env.${process.env.NODE_ENV || `development`}`;
+
+@Global()
 @Module({
   imports: [
     ConfigModule.forRoot({
@@ -20,38 +24,26 @@ const envFilePath = `.env.${process.env.NODE_ENV || `development`}`;
           .valid('development', 'production')
           .default('development'),
         DB_PORT: Joi.number().default(3306),
-        DB_HOST: Joi.string().ip(),
+        DB_HOST: Joi.alternatives().try(
+          Joi.string().ip(),
+          Joi.string().domain(),
+        ),
         DB_TYPE: Joi.string().valid('mysql', 'postgres'),
         DB_DATABASE: Joi.string().required(),
         DB_USERNAME: Joi.string().required(),
         DB_PASSWORD: Joi.string().required(),
         DB_SYNC: Joi.boolean().default(false),
+        LOG_ON: Joi.boolean(),
+        LOG_LEVEL: Joi.string(),
       }),
     }),
-    TypeOrmModule.forRoot(conncectionParams),
-    LoggerModule.forRoot({
-      pinoHttp: {
-        transport:
-          process.env.NODE_ENV === 'development'
-            ? {
-                target: 'pino-pretty',
-                options: {
-                  colorized: true,
-                },
-              }
-            : {
-                target: 'pino-roll',
-                options: {
-                  file: join('runningLog', 'log.txt'),
-                  frequency: 'daily',
-                  mkdir: true,
-                },
-              },
-      },
-    }),
+    TypeOrmModule.forRoot(connectionParams),
     UserModule,
+    LogsModule,
+    RolesModule,
   ],
   controllers: [],
-  providers: [],
+  providers: [Logger],
+  exports: [Logger],
 })
 export class AppModule {}
